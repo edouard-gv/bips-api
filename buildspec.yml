@@ -12,7 +12,7 @@ phases:
       - sam build
   post_build:
     commands:
-      - sam package --template-file .aws-sam/build/template.yaml --output-template-file packaged.yaml --s3-bucket arn:aws:s3:::codepipeline-eu-west-3-737397133459
+      - sam package --template-file .aws-sam/build/template.yaml --output-template-file packaged.yaml --s3-bucket codepipeline-eu-west-3-737397133459
 
 artifacts:
   files:
