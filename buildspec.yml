@@ -5,7 +5,6 @@ phases:
     runtime-versions:
       python: 3.8
     commands:
-      - pip install --upgrade pip awscli
       - pip install -r requirements.txt -t build/
 
   build:
