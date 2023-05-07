@@ -5,11 +5,11 @@ phases:
     runtime-versions:
       python: 3.8
     commands:
+      - pip install --upgrade pip awscli
       - pip install -r requirements.txt -t build/
 
   build:
     commands:
-      - cp -R . build/
       - aws cloudformation package --template-file template.yaml --s3-bucket odedeploy-eu-west-3-344520032411 --output-template-file packaged.yaml
 
 artifacts:
