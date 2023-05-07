@@ -5,14 +5,12 @@ phases:
     runtime-versions:
       python: 3.8
     commands:
-      - pip install -r requirements.txt
-      - pip install aws-sam-cli
+      - pip install -r requirements.txt -t build/
+
   build:
     commands:
-      - sam build
-  post_build:
-    commands:
-      - sam package --template-file .aws-sam/build/template.yaml --output-template-file packaged.yaml --s3-bucket codedeploy-eu-west-3-344520032411
+      - cp -R . build/
+      - aws cloudformation package --template-file template.yaml --s3-bucket odedeploy-eu-west-3-344520032411 --output-template-file packaged.yaml
 
 artifacts:
   files:
