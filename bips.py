@@ -41,7 +41,10 @@ def get_bips(location):
 
 # Fonction principale pour AWS Lambda
 def lambda_handler(event, context):
-    http_method = event["requestContext"]["http"]["method"]
+    if "http" in event["requestContext"]:
+        http_method = event["requestContext"]["http"]["method"]
+    else:
+        http_method = event["requestContext"]["httpMethod"]
 
     if http_method == "POST":
         data = json.loads(event["body"])
