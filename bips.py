@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     if http_method == "POST":
         data = json.loads(event["body"])
         bip_id = add_bip(data)
-        response = {"message": f"Bip added with ID: {bip_id}"}
+        response = {"message": f"Bip stacked with ID: {bip_id}"}
     elif http_method == "GET":
         location = event["queryStringParameters"]["location"]
         response = get_bips(location)
