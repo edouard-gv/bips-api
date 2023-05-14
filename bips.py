@@ -5,7 +5,6 @@ import uuid
 
 import boto3
 from boto3.dynamodb.conditions import Key
-from boto3.dynamodb.types import DecimalEncoder
 
 # Configuration de la base de données DynamoDB
 dynamodb = boto3.resource("dynamodb")
@@ -36,7 +35,7 @@ def get_bips(location):
     )
 
     return [
-        {"pseudo": bip["pseudo"], "status_code": decimal.Decimal(bip["status_code"]), "timestamp": bip["timestamp"]}
+        {"pseudo": bip["pseudo"], "status_code": int(bip["status_code"]), "timestamp": bip["timestamp"]}
         for bip in response["Items"]
     ]
 
