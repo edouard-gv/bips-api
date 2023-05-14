@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime, timedelta
+import decimal
 import uuid
 
 import boto3
@@ -24,6 +25,12 @@ def add_bip(data):
     table.put_item(Item=bip)
     return bip["id"]
 
+# Fonction pour encoder un décimal en JSON
+def decimal_default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return int(obj)
+    return obj
+
 # Fonction pour récupérer les Bips qui ont été postés au même endroit aujourd'hui
 def get_bips(location):
     start_time = datetime.utcnow().date().isoformat()
@@ -35,7 +42,7 @@ def get_bips(location):
     )
 
     return [
-        {"pseudo": bip["pseudo"], "status_code": int(bip["status_code"]), "timestamp": bip["timestamp"]}
+        {"pseudo": bip["pseudo"], "status_code": decimal_default(bip["status_code"]), "timestamp": bip["timestamp"]}
         for bip in response["Items"]
     ]
 
