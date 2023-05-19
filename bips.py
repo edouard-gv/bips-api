@@ -1,7 +1,7 @@
 import decimal
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from math import cos, pi
 
 import boto3
@@ -19,9 +19,10 @@ def add_bip(data):
         "pseudo": data["pseudo"],
         "status_code": data["status_code"],
         "location": data["location"],
-        "latitude": data.get("latitude", None),
-        "longitude": data.get("longitude", None),
+        "latitude": decimal.Decimal(str(data.get("latitude", None))),
+        "longitude": decimal.Decimal(str(data.get("longitude", None))),
         "timestamp": datetime.utcnow().isoformat(),
+        "day": str(date.today())
     }
     table.put_item(Item=bip)
     return bip["id"]
@@ -46,51 +47,30 @@ def calculate_bounding_box_half_dimensions(lat, lon, distance):
 
 
 # Fonction pour récupérer les Bips qui ont été postés au même endroit aujourd'hui
-def get_bips(location, latitude, longitude):
-    start_time = datetime.utcnow().date().isoformat()
-    end_time = (datetime.utcnow().date() + timedelta(days=1)).isoformat()
-
+def get_bips(location, latitude=0, longitude=0):
     locations_with_same_name = table.query(
-        IndexName="location-timestamp-index",
-        KeyConditionExpression=Key("location").eq(location) & Key("timestamp").between(start_time, end_time),
+        IndexName="day-location-index",
+        KeyConditionExpression=Key("day").eq(str(date.today())) & Key("location").eq(location),
     ) if location != "geoloc" else {"Items": []}  # Si on demande les Bips géolocalisés, on ne filtre pas par location
 
-    locations_around = {
-        "Items": []}  # pour l'instant pas de query
+    # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
+    if latitude == 0 and longitude == 0:
+        locations_around = {"Items": []}
+    else:
+        locations_around = table.query(
+            IndexName="day-location-index",
+            KeyConditionExpression=Key("day").eq(str(date.today())),
+        )
 
     d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
     return [
         {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
-        for bip in set().union(locations_with_same_name["Items"],
-                               [bip for bip in locations_around["Item"]
-                                if latitude - d_lat <= bip["latitude"] <= latitude + d_lat
-                                and longitude - d_lon <= bip["longitude"] <= longitude + d_lon])
+        for bip in locations_with_same_name["Items"] +
+                   [bip for bip in locations_around["Items"]
+                    if latitude - d_lat <= bip["latitude"] <= latitude + d_lat
+                    and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
+                    and (location == "geoloc" or bip["location"] != location)]
     ]
-
-# def get_bips_a_tester_plus_tard(location, latitude, longitude):
-#     start_time = datetime.utcnow().date().isoformat()
-#     end_time = (datetime.utcnow().date() + timedelta(days=1)).isoformat()
-#
-#     locations_with_same_name = table.query(
-#         IndexName="location-timestamp-index",
-#         KeyConditionExpression=Key("location").eq(location) & Key("timestamp").between(start_time, end_time),
-#     ) if location != "geoloc" else {"Items": []}  # Si on demande les Bips géolocalisés, on ne filtre pas par location
-#
-#     locations_around = table.query(
-#         IndexName="location-timestamp-index",
-#         KeyConditionExpression=Key("timestamp").between(start_time, end_time),
-#     ) if latitude != 0 and longitude != 0 else {
-#         "Items": []}  # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
-#
-#     d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
-#     return [
-#         {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
-#         for bip in set().union(locations_with_same_name["Items"],
-#                                [bip for bip in locations_around["Item"]
-#                                 if latitude - d_lat <= bip["latitude"] <= latitude + d_lat
-#                                 and longitude - d_lon <= bip["longitude"] <= longitude + d_lon])
-#     ]
-
 
 
 # Fonction principale pour AWS Lambda
@@ -106,9 +86,12 @@ def lambda_handler(event, context):
         response = {"message": f"Bip stacked with ID: {bip_id}"}
     elif http_method == "GET":
         location = event["queryStringParameters"]["location"]
-        latitude = event["queryStringParameters"]["latitude"]
-        longitude = event["queryStringParameters"]["longitude"]
-        response = get_bips(location, latitude, longitude)
+        if "latitude" in event["queryStringParameters"] and "longitude" in event["queryStringParameters"]:
+            latitude = event["queryStringParameters"]["latitude"]
+            longitude = event["queryStringParameters"]["longitude"]
+            response = get_bips(location, latitude, longitude)
+        else:
+            response = get_bips(location)
     else:
         response = {"error": "Invalid request"}
 
