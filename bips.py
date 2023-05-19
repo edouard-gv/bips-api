@@ -87,8 +87,8 @@ def lambda_handler(event, context):
     elif http_method == "GET":
         location = event["queryStringParameters"]["location"]
         if "latitude" in event["queryStringParameters"] and "longitude" in event["queryStringParameters"]:
-            latitude = event["queryStringParameters"]["latitude"]
-            longitude = event["queryStringParameters"]["longitude"]
+            latitude = float(event["queryStringParameters"]["latitude"])
+            longitude = float(event["queryStringParameters"]["longitude"])
             response = get_bips(location, latitude, longitude)
         else:
             response = get_bips(location)
