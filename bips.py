@@ -64,34 +64,26 @@ def calculate_bounding_box_half_dimensions(lat, lon, distance):
 def get_bips(location, latitude=None, longitude=None):
     service = DynamoService()
 
-    if location != "geoloc":
-        locations_with_same_name = service.table.query(
-            IndexName="day-location-index",
-            KeyConditionExpression=Key("day").eq(str(date.today())) & Key("location").eq(location),
-        )["Items"]
-    # Si on n'est en geoloc, on ne filtre pas par location
-    else:
-        locations_with_same_name = []
+    bips_of_day = service.table.query(
+        IndexName="day-location-index",
+        KeyConditionExpression=Key("day").eq(str(date.today())),
+    )["Items"]
 
     if latitude is not None or longitude is not None:
-        unfiltered_locations_around = service.table.query(
-            IndexName="day-location-index",
-            KeyConditionExpression=Key("day").eq(str(date.today())),
-        )["Items"]
-
         d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
-        locations_around = [bip for bip in unfiltered_locations_around
+        bips_around = [bip for bip in bips_of_day
          if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
          and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
-         and (location == "geoloc" or bip["location"] != location)]
+         or (location != "geoloc" and bip["location"] == location)]
 
     # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
     else:
-        locations_around = []
+        bips_around = [bip for bip in bips_of_day
+                        if (location != "geoloc" and bip["location"] == location)]
 
     return [
         {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
-        for bip in locations_with_same_name + locations_around
+        for bip in bips_around
     ]
 
 
