@@ -65,7 +65,8 @@ def get_bips(location, latitude=None, longitude=None):
     service = DynamoService()
 
     bips_of_day = service.table.query(
-        IndexName="day-location-index",
+        IndexName="day-timestamp-index",
+        ScanIndexForward=False,
         KeyConditionExpression=Key("day").eq(str(date.today())),
     )["Items"]
 
