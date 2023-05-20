@@ -19,11 +19,12 @@ def add_bip(data):
         "pseudo": data["pseudo"],
         "status_code": data["status_code"],
         "location": data["location"],
-        "latitude": decimal.Decimal(str(data.get("latitude", None))),
-        "longitude": decimal.Decimal(str(data.get("longitude", None))),
         "timestamp": datetime.utcnow().isoformat(),
         "day": str(date.today())
     }
+    if "latitude" in data and "longitude" in data:
+        bip["latitude"] = decimal.Decimal(str(data.get("latitude")))
+        bip["longitude"] = decimal.Decimal(str(data.get("longitude")))
     table.put_item(Item=bip)
     return bip["id"]
 
@@ -67,8 +68,8 @@ def get_bips(location, latitude=0, longitude=0):
         {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
         for bip in locations_with_same_name["Items"] +
                    [bip for bip in locations_around["Items"]
-                    if latitude - d_lat <= bip["latitude"] <= latitude + d_lat
-                    and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
+                    if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
+                    and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
                     and (location == "geoloc" or bip["location"] != location)]
     ]
 
