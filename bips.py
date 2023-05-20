@@ -1,19 +1,32 @@
 import decimal
 import json
 import uuid
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 from math import cos, pi
 
 import boto3
 from boto3.dynamodb.conditions import Key
 
+
 # Configuration de la base de données DynamoDB
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("Bips")
+class DynamoService:
+
+    @property
+    def dynamodb(self):
+        if not hasattr(self, "_dynamodb"):
+            self._dynamodb = boto3.resource("dynamodb")
+        return self._dynamodb
+
+    @property
+    def table(self):
+        if not hasattr(self, "_table"):
+            self._table = self.dynamodb.Table("Bips")
+        return self._table
 
 
 # Fonction pour insérer un nouveau Bip dans la base de données
 def add_bip(data):
+    service = DynamoService()
     bip = {
         "id": str(uuid.uuid4()),
         "pseudo": data["pseudo"],
@@ -25,7 +38,7 @@ def add_bip(data):
     if "latitude" in data and "longitude" in data:
         bip["latitude"] = decimal.Decimal(str(data.get("latitude")))
         bip["longitude"] = decimal.Decimal(str(data.get("longitude")))
-    table.put_item(Item=bip)
+    service.table.put_item(Item=bip)
     return bip["id"]
 
 
@@ -48,29 +61,37 @@ def calculate_bounding_box_half_dimensions(lat, lon, distance):
 
 
 # Fonction pour récupérer les Bips qui ont été postés au même endroit aujourd'hui
-def get_bips(location, latitude=0, longitude=0):
-    locations_with_same_name = table.query(
-        IndexName="day-location-index",
-        KeyConditionExpression=Key("day").eq(str(date.today())) & Key("location").eq(location),
-    ) if location != "geoloc" else {"Items": []}  # Si on demande les Bips géolocalisés, on ne filtre pas par location
+def get_bips(location, latitude=None, longitude=None):
+    service = DynamoService()
 
-    # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
-    if latitude == 0 and longitude == 0:
-        locations_around = {"Items": []}
+    if location != "geoloc":
+        locations_with_same_name = service.table.query(
+            IndexName="day-location-index",
+            KeyConditionExpression=Key("day").eq(str(date.today())) & Key("location").eq(location),
+        )["Items"]
+    # Si on n'est en geoloc, on ne filtre pas par location
     else:
-        locations_around = table.query(
+        locations_with_same_name = []
+
+    if latitude is not None or longitude is not None:
+        unfiltered_locations_around = service.table.query(
             IndexName="day-location-index",
             KeyConditionExpression=Key("day").eq(str(date.today())),
-        )
+        )["Items"]
 
-    d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
+        d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
+        locations_around = [bip for bip in unfiltered_locations_around
+         if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
+         and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
+         and (location == "geoloc" or bip["location"] != location)]
+
+    # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
+    else:
+        locations_around = []
+
     return [
         {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
-        for bip in locations_with_same_name["Items"] +
-                   [bip for bip in locations_around["Items"]
-                    if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
-                    and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
-                    and (location == "geoloc" or bip["location"] != location)]
+        for bip in locations_with_same_name + locations_around
     ]
 
 

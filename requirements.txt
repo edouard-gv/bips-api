@@ -1,1 +1,1 @@
-#boto3
+#boto3 (déjà livré dans le container) => l'inclure dans l'env de dev à la main
