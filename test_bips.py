@@ -1,9 +1,10 @@
+from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import boto3.dynamodb.conditions
 
-from bips import get_bips
-
+from bips import get_bips, decimal2coords
+import decimal
 """
 Lieu des bips de test :
 1 : au siège
@@ -124,3 +125,7 @@ def init_mock(boto_mock):
     table_mock = MagicMock()
     table_mock.query.side_effect = mock_query
     boto_mock.return_value.Table.return_value = table_mock
+
+
+def test_decimal2coords():
+    assert decimal2coords(decimal.Decimal(1.23456789)) == 1.234568

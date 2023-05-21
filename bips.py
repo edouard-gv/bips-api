@@ -49,6 +49,12 @@ def decimal2status(obj):
     return obj
 
 
+def decimal2coords(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(round(obj, 6))
+    return obj
+
+
 def calculate_bounding_box_half_dimensions(lat, lon, distance):
     radius = 6371e3  # rayon de la Terre en mètres
     to_radians = pi / 180  # conversion de degrés à radians
@@ -73,19 +79,29 @@ def get_bips(location, latitude=None, longitude=None):
     if latitude is not None or longitude is not None:
         d_lat, d_lon = calculate_bounding_box_half_dimensions(latitude, longitude, 50)
         bips_around = [bip for bip in bips_of_day
-         if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
-         and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
-         or (location != "geoloc" and bip["location"] == location)]
+                       if "latitude" in bip and latitude - d_lat <= bip["latitude"] <= latitude + d_lat
+                       and "longitude" in bip and longitude - d_lon <= bip["longitude"] <= longitude + d_lon
+                       or (location != "geoloc" and bip["location"] == location)]
 
     # Si on n'a pas communiqué de latitude et longitude, on ne filtre pas par coordonnées
     else:
         bips_around = [bip for bip in bips_of_day
-                        if (location != "geoloc" and bip["location"] == location)]
+                       if (location != "geoloc" and bip["location"] == location)]
 
     return [
-        {"pseudo": bip["pseudo"], "status_code": decimal2status(bip["status_code"]), "timestamp": bip["timestamp"]}
-        for bip in bips_around
+        map_bip(bip) for bip in bips_around
     ]
+
+
+def map_bip(bip):
+    bip_mapped = {"pseudo": bip["pseudo"],
+                  "status_code": decimal2status(bip["status_code"]),
+                  "timestamp": bip["timestamp"],
+                  }
+    if "latitude" in bip and "longitude" in bip:
+        bip_mapped["latitude"] = decimal2coords(bip["latitude"])
+        bip_mapped["longitude"] = decimal2coords(bip["longitude"])
+    return bip_mapped
 
 
 # Fonction principale pour AWS Lambda
