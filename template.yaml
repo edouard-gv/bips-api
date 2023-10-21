@@ -13,7 +13,7 @@ Resources:
         ConnectRoute:
           Type: Api
           Properties:
-            Path: /@connections
+            Path: /bips/ws
             Method: POST
             RestApiId: !Ref WebSocketAPI
 
@@ -27,7 +27,7 @@ Resources:
         DisconnectRoute:
           Type: Api
           Properties:
-            Path: /@connections/{connectionId}
+            Path: /bips/ws/{connectionId}
             Method: DELETE
             RestApiId: !Ref WebSocketAPI
 
