@@ -35,6 +35,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      Protocol: WEBSOCKET
       DefinitionBody:
         Fn::Transform:
           Name: AWS::Include
