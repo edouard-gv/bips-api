@@ -117,6 +117,7 @@ def lambda_handler(event, context):
         response = {"message": f"Bip stacked with ID: {bip_id}"}
     elif http_method == "GET":
         location = event["queryStringParameters"]["location"]
+        # Si on a communiqué une latitude et une longitude, on les utilise pour filtrer les Bips
         if "latitude" in event["queryStringParameters"] and "longitude" in event["queryStringParameters"]:
             latitude = float(event["queryStringParameters"]["latitude"])
             longitude = float(event["queryStringParameters"]["longitude"])
