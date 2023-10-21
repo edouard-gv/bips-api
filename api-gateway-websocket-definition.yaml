@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: WebSocketAPI
 paths:
-  /@connections:
+  /bips/ws:
     post:
       x-amazon-apigateway-integration:
         uri:
@@ -10,7 +10,7 @@ paths:
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
-  /@connections/{connectionId}:
+  /bips/ws/{connectionId}:
     delete:
       x-amazon-apigateway-integration:
         uri:
