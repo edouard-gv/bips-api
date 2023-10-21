@@ -3,6 +3,44 @@ Transform: AWS::Serverless-2016-10-31
 Description: Backend Python for Bips App
 
 Resources:
+  ConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: connect/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Events:
+        ConnectRoute:
+          Type: Api
+          Properties:
+            Path: /@connections
+            Method: POST
+            RestApiId: !Ref WebSocketAPI
+
+  DisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: disconnect/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Events:
+        DisconnectRoute:
+          Type: Api
+          Properties:
+            Path: /@connections/{connectionId}
+            Method: DELETE
+            RestApiId: !Ref WebSocketAPI
+
+  WebSocketAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./api-gateway-websocket-definition.yaml
+
   BipsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -25,3 +63,5 @@ Outputs:
   ApiGatewayUrl:
     Description: "API Gateway endpoint URL"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/bips/"
+
+
