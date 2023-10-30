@@ -63,12 +63,30 @@ Resources:
       Description: Prod Stage
       DeploymentId: !Ref Deployment
       ApiId: !Ref BipsWebSocket
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "connectionId"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "connectionId"
+        KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: "bipers"
   OnConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: connect/
       Handler: app.lambda_handler
       Runtime: python3.8
+      Policies:
+      - DynamoDBCrudPolicy:
+        TableName: "bipers"
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -83,6 +101,9 @@ Resources:
       CodeUri: disconnect/
       Handler: app.lambda_handler
       Runtime: python3.8
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: "bipers"
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -109,6 +130,15 @@ Resources:
           Properties:
             Path: /bips
             Method: get
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: "bipers"
+      - Statement:
+          - Effect: Allow
+            Action:
+              - 'execute-api:ManageConnections'
+            Resource:
+              - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BipsWebSocket}/*'
 
 Outputs:
   OnConnectFunctionArn:
