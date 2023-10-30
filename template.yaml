@@ -77,7 +77,7 @@ Resources:
         WriteCapacityUnits: 5
       SSESpecification:
         SSEEnabled: True
-      TableName: "bipers"
+      TableName: bipers
   OnConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -86,7 +86,7 @@ Resources:
       Runtime: python3.8
       Policies:
       - DynamoDBCrudPolicy:
-        TableName: "bipers"
+        TableName: bipers
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -103,7 +103,7 @@ Resources:
       Runtime: python3.8
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: "bipers"
+          TableName: bipers
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -132,7 +132,7 @@ Resources:
             Method: get
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: "bipers"
+          TableName: bipers
       - Statement:
           - Effect: Allow
             Action:
