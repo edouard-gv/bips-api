@@ -84,9 +84,6 @@ Resources:
       CodeUri: connect/
       Handler: app.lambda_handler
       Runtime: python3.8
-      Policies:
-      - DynamoDBCrudPolicy:
-        TableName: bipers
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -101,9 +98,6 @@ Resources:
       CodeUri: disconnect/
       Handler: app.lambda_handler
       Runtime: python3.8
-      Policies:
-      - DynamoDBCrudPolicy:
-          TableName: bipers
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -130,15 +124,6 @@ Resources:
           Properties:
             Path: /bips
             Method: get
-      Policies:
-      - DynamoDBCrudPolicy:
-          TableName: bipers
-      - Statement:
-          - Effect: Allow
-            Action:
-              - 'execute-api:ManageConnections'
-            Resource:
-              - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BipsWebSocket}/*'
 
 Outputs:
   OnConnectFunctionArn:
