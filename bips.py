@@ -25,7 +25,7 @@ class DynamoService:
 
 
 # Fonction pour insérer un nouveau Bip dans la base de données
-def add_bip(data):
+def add_bip(data, connection_id=None):
     service = DynamoService()
     bip = {
         "id": str(uuid.uuid4()),
@@ -35,6 +35,8 @@ def add_bip(data):
         "timestamp": datetime.utcnow().isoformat(),
         "day": str(date.today())
     }
+    if connection_id is not None:
+        bip["connection_id"] = connection_id
     if "latitude" in data and "longitude" in data:
         bip["latitude"] = decimal.Decimal(str(data.get("latitude")))
         bip["longitude"] = decimal.Decimal(str(data.get("longitude")))
@@ -102,6 +104,19 @@ def map_bip(bip):
         bip_mapped["latitude"] = decimal2coords(bip["latitude"])
         bip_mapped["longitude"] = decimal2coords(bip["longitude"])
     return bip_mapped
+
+
+# Fonction répondant à l'action d'émission d'un bip sur la websocket
+def bip_handler(event, context):
+    connection_id = event['requestContext']['connectionId']
+    data = json.loads(event["body"])
+    bip_id = add_bip(data, connection_id)
+    response = {"message": f"Bip stacked with ID: {bip_id}"}
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(response),
+    }
 
 
 # Fonction principale pour AWS Lambda

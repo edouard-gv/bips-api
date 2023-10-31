@@ -49,9 +49,30 @@ Resources:
       IntegrationUri:
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  BipRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref BipsWebSocket
+      RouteKey: bip
+      AuthorizationType: NONE
+      OperationName: BipRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref BipInteg
+  BipInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref BipsWebSocket
+      Description: Bip Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BipFunction.Arn}/invocations
   Deployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
+    - BipRoute
     - ConnectRoute
     - DisconnectRoute
     Properties:
@@ -106,6 +127,12 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnDisconnectFunction
       Principal: apigateway.amazonaws.com
+  BipFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bips.bip_handler
+      Runtime: python3.8
 
   BipsFunction:
     Type: AWS::Serverless::Function
@@ -133,6 +160,10 @@ Outputs:
   OnDisconnectFunctionArn:
     Description: "OnDisconnect function ARN"
     Value: !GetAtt OnDisconnectFunction.Arn
+
+  BipFunctionArn:
+    Description: "Bip function ARN"
+    Value: !GetAtt BipFunction.Arn
 
   WebSocketURI:
     Description: "The WSS Protocol URI to connect to"
