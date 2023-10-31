@@ -133,6 +133,14 @@ Resources:
       CodeUri: .
       Handler: bips.bip_handler
       Runtime: python3.8
+  BipPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - BipsWebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BipFunction
+      Principal: apigateway.amazonaws.com
 
   BipsFunction:
     Type: AWS::Serverless::Function
