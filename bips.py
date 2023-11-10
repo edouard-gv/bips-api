@@ -27,7 +27,7 @@ class DynamoService:
     @property
     def bipers_table(self):
         if not hasattr(self, "_bipers_table"):
-            self._bipers_table = self.dynamodb.Table("Bipers")
+            self._bipers_table = self.dynamodb.Table("bipers")
         return self._bipers_table
 
 
@@ -124,11 +124,7 @@ def notify_connected_bipers():
         response = table.scan()
         connection_ids = [item['connectionId'] for item in response['Items']]
     except ClientError as e:
-        print(e.response['Error']['Message'])
-        return {
-            'statusCode': 500,
-            'body': json.dumps('Error fetching connection IDs')
-        }
+        return -1
 
     # Envoyer des notifications
     message = {'action': 'notify', 'data': 'new bip'}
@@ -140,6 +136,7 @@ def notify_connected_bipers():
             )
         except ClientError as e:
             print(e.response['Error']['Message'])
+            # TODO : User: arn:aws: sts::344520032411: assumed - role / bips - BipFunctionRole - 8NAUT3qiSfUh / bips - BipFunction - rmP2yzYaSSlW is not authorized to perform: execute - api:ManageConnections on resource: arn:aws: execute - api:eu - west - 3: ** ** ** ** 2411: djlftbwj16 / Prod / POST / @ connections / {connectionId}
             # Gérer les connexions expirées
             if e.response['Error']['Code'] == 'GoneException':
                 # Supprimer l'ID de connexion de DynamoDB si nécessaire
