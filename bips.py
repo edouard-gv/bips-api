@@ -6,6 +6,7 @@ from math import cos, pi
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 
 # Configuration de la base de données DynamoDB
@@ -18,10 +19,16 @@ class DynamoService:
         return self._dynamodb
 
     @property
-    def table(self):
-        if not hasattr(self, "_table"):
-            self._table = self.dynamodb.Table("Bips")
-        return self._table
+    def bips_table(self):
+        if not hasattr(self, "_bips_table"):
+            self._bips_table = self.dynamodb.Table("Bips")
+        return self._bips_table
+
+    @property
+    def bipers_table(self):
+        if not hasattr(self, "_bipers_table"):
+            self._bipers_table = self.dynamodb.Table("Bipers")
+        return self._bipers_table
 
 
 # Fonction pour insérer un nouveau Bip dans la base de données
@@ -39,7 +46,7 @@ def add_bip(data, connection_id):
     if "latitude" in data and "longitude" in data:
         bip["latitude"] = decimal.Decimal(str(data.get("latitude")))
         bip["longitude"] = decimal.Decimal(str(data.get("longitude")))
-    service.table.put_item(Item=bip)
+    service.bips_table.put_item(Item=bip)
     return bip["id"]
 
 
@@ -71,7 +78,7 @@ def calculate_bounding_box_half_dimensions(lat, lon, distance):
 def get_bips(location, latitude=None, longitude=None):
     service = DynamoService()
 
-    bips_of_day = service.table.query(
+    bips_of_day = service.bips_table.query(
         IndexName="day-timestamp-index",
         ScanIndexForward=False,
         KeyConditionExpression=Key("day").eq(str(date.today())),
@@ -105,12 +112,49 @@ def map_bip(bip):
     return bip_mapped
 
 
+# Fonction pour envoyer une notification à tous les clients connectés
+def notify_connected_bipers():
+    table = DynamoService().bipers_table
+
+    # Créer un client pour l'API Gateway Management API
+    client = boto3.client('apigatewaymanagementapi', endpoint_url='https://djlftbwj16.execute-api.eu-west-3.amazonaws.com/Prod/')
+
+    # Récupérer les IDs de connexion depuis DynamoDB
+    try:
+        response = table.scan()
+        connection_ids = [item['connectionId'] for item in response['Items']]
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Error fetching connection IDs')
+        }
+
+    # Envoyer des notifications
+    message = {'action': 'notify', 'data': 'new bip'}
+    for connection_id in connection_ids:
+        try:
+            client.post_to_connection(
+                ConnectionId=connection_id,
+                Data=json.dumps(message).encode('utf-8')
+            )
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+            # Gérer les connexions expirées
+            if e.response['Error']['Code'] == 'GoneException':
+                # Supprimer l'ID de connexion de DynamoDB si nécessaire
+                pass
+
+    return len(connection_ids)
+
+
 # Fonction répondant à l'action d'émission d'un bip sur la websocket
 def bip_handler(event, context):
     connection_id = event['requestContext']['connectionId']
     data = json.loads(event["body"])["data"]
     bip_id = add_bip(data, connection_id)
-    response = {"message": f"Bip stacked with ID: {bip_id}"}
+    nb_notified_bipers = notify_connected_bipers()
+    response = {"message": f"Bip stacked with ID: {bip_id} and {nb_notified_bipers} connected bipers notified"}
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
