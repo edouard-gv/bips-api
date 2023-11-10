@@ -109,7 +109,7 @@ def map_bip(bip):
 # Fonction répondant à l'action d'émission d'un bip sur la websocket
 def bip_handler(event, context):
     connection_id = event['requestContext']['connectionId']
-    data = json.loads(event["body"])
+    data = json.loads(event["body"])["data"]
     bip_id = add_bip(data, connection_id)
     response = {"message": f"Bip stacked with ID: {bip_id}"}
     return {
