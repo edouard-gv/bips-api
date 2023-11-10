@@ -25,9 +25,10 @@ class DynamoService:
 
 
 # Fonction pour insérer un nouveau Bip dans la base de données
-def add_bip(data, connection_id=None):
+def add_bip(data, connection_id):
     service = DynamoService()
     bip = {
+        "connection_id": connection_id,
         "id": str(uuid.uuid4()),
         "pseudo": data["pseudo"],
         "status_code": data["status_code"],
@@ -35,8 +36,6 @@ def add_bip(data, connection_id=None):
         "timestamp": datetime.utcnow().isoformat(),
         "day": str(date.today())
     }
-    if connection_id is not None:
-        bip["connection_id"] = connection_id
     if "latitude" in data and "longitude" in data:
         bip["latitude"] = decimal.Decimal(str(data.get("latitude")))
         bip["longitude"] = decimal.Decimal(str(data.get("longitude")))
@@ -126,11 +125,7 @@ def lambda_handler(event, context):
     else:
         http_method = event["requestContext"]["httpMethod"]
 
-    if http_method == "POST":
-        data = json.loads(event["body"])
-        bip_id = add_bip(data)
-        response = {"message": f"Bip stacked with ID: {bip_id}"}
-    elif http_method == "GET":
+    if http_method == "GET":
         location = event["queryStringParameters"]["location"]
         # Si on a communiqué une latitude et une longitude, on les utilise pour filtrer les Bips
         if "latitude" in event["queryStringParameters"] and "longitude" in event["queryStringParameters"]:
