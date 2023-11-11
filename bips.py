@@ -127,7 +127,7 @@ def notify_connected_bipers():
         return -1
 
     # Envoyer des notifications
-    message = {'action': 'notify', 'data': 'new bip'}
+    message = {'action': 'notify'}
     for connection_id in connection_ids:
         try:
             client.post_to_connection(
@@ -150,7 +150,7 @@ def bip_handler(event, context):
     data = json.loads(event["body"])["data"]
     bip_id = add_bip(data, connection_id)
     nb_notified_bipers = notify_connected_bipers()
-    response = {"message": f"Bip stacked with ID: {bip_id} and {nb_notified_bipers} connected bipers notified"}
+    response = {'action': 'acknowledge', "message": f"Bip stacked with ID: {bip_id} and {nb_notified_bipers} connected bipers notified"}
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
